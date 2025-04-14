@@ -34,9 +34,6 @@ return new class extends Migration
             $table->index('name', 'idx_name');
 
         });
-
-        // 表注释
-        // DB::statement("ALTER TABLE `blog_categories` COMMENT '博客分类表'");
     }
 
     /**

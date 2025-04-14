@@ -43,9 +43,6 @@ return new class extends Migration
             $table->index('created_at', 'idx_created_at');
 
         });
-
-        // 表注释
-        // DB::statement("ALTER TABLE `ba_blog_articles` COMMENT '博客文章表'");
     }
 
     /**
