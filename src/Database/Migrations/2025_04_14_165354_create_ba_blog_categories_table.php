@@ -36,10 +36,7 @@ return new class extends Migration
         });
 
         // 表注释
-        DB::statement("ALTER TABLE `blog_categories` COMMENT '博客分类表'");
-
-        // 自增值设置（与原始SQL一致）
-        DB::statement("ALTER TABLE `blog_categories` AUTO_INCREMENT=4");
+        // DB::statement("ALTER TABLE `blog_categories` COMMENT '博客分类表'");
     }
 
     /**

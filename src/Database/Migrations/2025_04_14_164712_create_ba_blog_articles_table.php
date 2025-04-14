@@ -45,7 +45,7 @@ return new class extends Migration
         });
 
         // 表注释
-        DB::statement("ALTER TABLE `blog_articles` COMMENT '博客文章表'");
+        // DB::statement("ALTER TABLE `ba_blog_articles` COMMENT '博客文章表'");
     }
 
     /**
