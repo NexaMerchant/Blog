@@ -13,10 +13,6 @@ use NexaMerchant\Blog\Http\Controllers\Api\BlogController;
 
 Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
 
-    Route::get('/api/test', function() {
-        return ['timestamp' => now()->toDateTimeString()];
-    });
-
     // 示例路由组（保持不变）
     Route::prefix('blog')->group(function () {
         Route::controller(ExampleController::class)
@@ -26,7 +22,7 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
             });
     });
 
-    // 管理员接口组
+    // 后台接口
     Route::prefix('admin')->group(function () {
         Route::controller(BlogController::class)
             ->prefix('blog')
@@ -46,4 +42,18 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
                 Route::delete('articles/{id}', 'deleteArticle')->name('v1.admin.blog.articles.destroy');
             });
     });
+
+    // 前端接口
+    Route::controller(BlogController::class)
+        ->prefix('blog')
+        ->group(function () {
+            // 分类接口
+            Route::get('categories', 'listCategories')->name('v1.admin.blog.categories.index');
+            Route::get('categories/{id}', 'showCategory')->name('v1.admin.blog.categories.show');
+
+            // 文章接口
+            Route::get('articles', 'listArticles')->name('v1.admin.blog.articles.index');
+            Route::get('articles/{id}', 'showArticle')->name('v1.admin.blog.articles.show');
+        });
+
 });
