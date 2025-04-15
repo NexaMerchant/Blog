@@ -139,8 +139,8 @@ class BlogController extends Controller
     public function listCategories(Request $request)
     {
         $data = [];
-        $data['code'] = 200;
-        $data['message'] = "success";
+        $data['code'] = 300;
+        $data['message'] = "succes1s";
         return response()->json($data);
 
         // 验证请求参数
@@ -197,8 +197,8 @@ class BlogController extends Controller
         // 关键词搜索（标题/内容）
         if (!empty($validated['search'])) {
             $query->where(function($q) use ($validated) {
-                $q->where('title', 'like', '%'.$validated['search'].'%')
-                ->orWhere('content', 'like', '%'.$validated['search'].'%');
+                $q->where('title', 'like', '%'.$validated['search'].'%');
+                // ->orWhere('content', 'like', '%'.$validated['search'].'%');
             });
         }
 

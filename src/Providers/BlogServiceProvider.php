@@ -1,11 +1,11 @@
 <?php
 /**
- * 
+ *
  * This file is auto generate by Nicelizhi\Apps\Commands\Create
  * @author Steve
  * @date 2025-04-11 09:02:26
  * @link https://github.com/xxxl4
- * 
+ *
  */
 namespace NexaMerchant\Blog\Providers;
 
@@ -30,14 +30,14 @@ class BlogServiceProvider extends ServiceProvider
     public function boot(Router $router)
     {
         Route::middleware('web')->group(__DIR__ . '/../Routes/web.php');
-        Route::middleware('api')->group(__DIR__ . '/../Routes/api.php');
+        // Route::middleware('api')->group(__DIR__ . '/../Routes/api.php');
 
         $this->loadTranslationsFrom(__DIR__ . '/../Resources/lang', 'Blog');
 
         $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'Blog');
 
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
-        
+
 
         /*
         $this->app->register(EventServiceProvider::class);
@@ -79,7 +79,7 @@ class BlogServiceProvider extends ServiceProvider
             'acl'
         );
 
-        
+
         $this->mergeConfigFrom(
             dirname(__DIR__) . '/Config/Blog.php', 'Blog'
         );
@@ -90,7 +90,7 @@ class BlogServiceProvider extends ServiceProvider
             dirname(__DIR__) . '/Config/l5-swagger.php', 'l5-swagger.documentations'
         );
         */
-        
+
     }
 
     /**
