@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class BlogCategory extends Model
 {
-    // protected $table = 'ba_blog_categorys';
+    // protected $table = 'ba_blog_categories';
 
     protected $fillable = [
         'name',

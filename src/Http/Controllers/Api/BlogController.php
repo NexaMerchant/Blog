@@ -289,4 +289,78 @@ class BlogController extends Controller
             }
         });
     }
+
+    public function showArticle(Request $request, $id)
+    {
+        try {
+            // 验证ID有效性
+            $validated = $request->validate([
+                'with_category' => 'nullable|boolean',
+                'with_related' => 'nullable|integer|min:1|max:5' // 相关文章数量
+            ]);
+
+            // 构建查询
+            $article = BlogArticle::query()
+                ->when($request->boolean('with_category'), function ($query) {
+                    $query->with(['category' => function ($q) {
+                        $q->select('id', 'name', 'seo_url_key');
+                    }]);
+                })
+                ->when($request->filled('with_related'), function ($query) use ($id, $request) {
+                    $query->with(['relatedArticles' => function ($q) use ($request) {
+                        $q->limit($request->input('with_related', 3))
+                        ->select('id', 'title', 'seo_url_key', 'created_at');
+                    }]);
+                })
+                ->findOrFail($id);
+
+            // 记录访问量（队列处理）
+            // dispatch(function () use ($id) {
+            //     BlogArticle::where('id', $id)->increment('view_count');
+            // })->afterResponse();
+
+            return response()->json([
+                'success' => true,
+                'data' => $this->formatArticleResponse($article),
+                'message' => '文章获取成功'
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '文章不存在'
+            ], 404);
+
+        } catch (\Exception $e) {
+            \Log::error('获取文章失败: '.$e->getMessage(), [
+                'article_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => '服务器错误'
+            ], 500);
+        }
+    }
+
+    // 格式化响应数据
+    protected function formatArticleResponse($article)
+    {
+        return [
+            'id' => $article->id,
+            'title' => $article->title,
+            'content' => $article->content,
+            'cover_image' => asset($article->cover_image),
+            'category' => $article->category ?: null,
+            'related_articles' => $article->relatedArticles->isEmpty() ? null : $article->relatedArticles,
+            'seo_meta' => [
+                'title' => $article->seo_meta_title,
+                'keywords' => $article->seo_meta_keywords,
+                'description' => $article->seo_meta_description
+            ],
+            'created_at' => $article->created_at->toDateTimeString(),
+            'updated_at' => $article->updated_at->toDateTimeString()
+        ];
+    }
 }

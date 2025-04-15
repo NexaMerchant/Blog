@@ -25,6 +25,13 @@ class BlogArticle extends Model
 
     public function category()
     {
-        return $this->belongsTo(BlogCategory::class, 'category_id');
+        return $this->belongsTo(BlogCategory::class, 'category_id', 'id');
+    }
+
+    public function relatedArticles()
+    {
+        return $this->hasMany(BlogArticle::class, 'category_id', 'category_id')
+            ->where('id', '!=', $this->id)
+            ->orderBy('created_at', 'desc');
     }
 }
