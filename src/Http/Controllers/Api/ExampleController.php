@@ -15,8 +15,8 @@ class ExampleController extends Controller
 {
     public function demo() {
         $data = [];
-        $data['code'] = 300;
-        $data['message'] = "succe1ss";
+        $data['code'] = 200;
+        $data['message'] = "success";
         return response()->json($data);
     }
 }

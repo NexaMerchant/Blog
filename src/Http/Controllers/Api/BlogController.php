@@ -138,11 +138,6 @@ class BlogController extends Controller
 
     public function listCategories(Request $request)
     {
-        $data = [];
-        $data['code'] = 300;
-        $data['message'] = "succes1s";
-        return response()->json($data);
-
         // 验证请求参数
         $validated = $request->validate([
             'per_page' => 'nullable|integer|min:1|max:100',
