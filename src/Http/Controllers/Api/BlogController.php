@@ -363,4 +363,59 @@ class BlogController extends Controller
             'updated_at' => $article->updated_at->toDateTimeString()
         ];
     }
+
+    public function deleteArticle($id)
+    {
+        return DB::transaction(function () use ($id) {
+            try {
+                // $article = BlogArticle::withCount(['comments', 'likes'])->findOrFail($id);
+
+                // 前置验证
+                // if ($article->comments_count > 0 || $article->likes_count > 0) {
+                //     return response()->json([
+                //         'success' => false,
+                //         'message' => '文章存在关联数据，请先删除评论或点赞'
+                //     ], 422);
+                // }
+
+                $article = BlogArticle::query()->findOrFail($id);
+
+                // $this->createArticleBackup($article);
+
+                // 执行删除（软删除或硬删除）
+                $forceDelete = 'force';//request()->input('force', false);
+                $article->{$forceDelete ? 'forceDelete' : 'delete'}();
+
+                // 记录审计日志
+                // $this->logArticleDeletion($article);
+
+                // 清理缓存
+                // Cache::tags(['article_' . $id])->flush();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => $forceDelete ? '文章已永久删除' : '文章已进入回收站',
+                    'deleted_at' => now()->toDateTimeString()
+                ]);
+
+            } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '文章不存在或已被删除'
+                ], 404);
+
+            } catch (\Exception $e) {
+                Log::error('删除文章失败: '.$e->getMessage(), [
+                    'article_id' => $id,
+                    'user_id' => auth()->id(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => '删除失败: '.$e->getMessage()
+                ], 500);
+            }
+        });
+    }
 }

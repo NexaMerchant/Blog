@@ -43,7 +43,7 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
                 Route::get('articles', 'listArticles')->name('v1.admin.blog.articles.index');
                 Route::get('articles/{id}', 'showArticle')->name('v1.admin.blog.articles.show');
                 Route::put('articles/{id}', 'updateArticle')->name('v1.admin.blog.articles.update');
-                // Route::delete('articles/{id}', 'deleteArticle')->name('v1.admin.blog.articles.destroy');
+                Route::delete('articles/{id}', 'deleteArticle')->name('v1.admin.blog.articles.destroy');
             });
     });
 });
