@@ -254,10 +254,10 @@ class BlogController extends Controller
     {
         try {
             // 验证ID有效性
-            $validated = $request->validate([
-                'with_category' => 'nullable|boolean',
-                'with_related' => 'nullable|integer|min:1|max:5' // 相关文章数量
-            ]);
+            // $validated = $request->validate([
+            //     'with_category' => 'nullable|boolean',
+            //     'with_related' => 'nullable|integer|min:1|max:5' // 相关文章数量
+            // ]);
 
             // 构建查询
             $article = BlogArticle::query()
