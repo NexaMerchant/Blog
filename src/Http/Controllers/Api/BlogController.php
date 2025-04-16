@@ -250,46 +250,6 @@ class BlogController extends Controller
         return $imageUrl;
     }
 
-    public function deleteCategory($categoryId)
-    {
-        return DB::transaction(function () use ($categoryId) {
-            try {
-                $category = BlogCategory::withCount('articles')->findOrFail($categoryId);
-
-                if ($category->articles_count > 0) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => '该分类下存在文章，无法删除'
-                    ], 422);
-                }
-
-                // 执行删除
-                $category->delete();
-
-                return response()->json([
-                    'success' => true,
-                    'message' => '分类删除成功',
-                    'deleted_at' => Carbon::now()->toDateTimeString()
-                ], 200);
-            } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '分类不存在或已被删除'
-                ], 404);
-            } catch (\Exception $e) {
-                Log::error('分类删除失败: ' . $e->getMessage(), [
-                    'category_id' => $categoryId,
-                    'user_id' => auth()->id()
-                ]);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => '删除失败: ' . $e->getMessage()
-                ], 500);
-            }
-        });
-    }
-
     public function showArticle(Request $request, $id)
     {
         try {
@@ -424,7 +384,8 @@ class BlogController extends Controller
             'seo_meta' => [
                 'title' => $article->seo_meta_title,
                 'keywords' => $article->seo_meta_keywords,
-                'description' => $article->seo_meta_description
+                'description' => $article->seo_meta_description,
+                'url_key' => $article->seo_url_key
             ],
             'created_at' => $article->created_at->toDateTimeString(),
             'updated_at' => $article->updated_at->toDateTimeString()
@@ -433,47 +394,93 @@ class BlogController extends Controller
 
     public function deleteArticle($id)
     {
+        $ids = $id ? explode(',', $id) : request()->input('ids', []);
+        // 验证ID数组
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => '请指定要删除的文章ID'
+            ], 400);
+        }
+
+        // 检查所有ID是否有效
+        $validIds = BlogArticle::whereIn('id', $ids)
+            ->pluck('id')
+            ->toArray();
+
+        if (count($ids) !== count($validIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => '包含无效的文章ID',
+                'invalid_ids' => array_diff($ids, $validIds)
+            ], 422);
+        }
+
+        // 执行删除
+        BlogArticle::whereIn('id', $ids)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => '删除成功',
+            'deleted_ids' => $ids,
+            'count' => count($ids)
+        ]);
+    }
+
+    public function deleteCategory($id)
+    {
         return DB::transaction(function () use ($id) {
             try {
-                // $article = BlogArticle::withCount(['comments', 'likes'])->findOrFail($id);
 
-                // 前置验证
-                // if ($article->comments_count > 0 || $article->likes_count > 0) {
-                //     return response()->json([
-                //         'success' => false,
-                //         'message' => '文章存在关联数据，请先删除评论或点赞'
-                //     ], 422);
-                // }
+                $ids = $id ? explode(',', $id) : request()->input('ids', []);
+                // 验证ID数组
+                if (empty($ids)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '请指定要删除的分类ID'
+                    ], 400);
+                }
 
-                $article = BlogArticle::query()->findOrFail($id);
+                // 检查所有ID是否有效
+                $validIds = BlogCategory::whereIn('id', $ids)
+                    ->pluck('id')
+                    ->toArray();
 
-                // $this->createArticleBackup($article);
+                if (count($ids) !== count($validIds)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '包含无效的分类ID',
+                        'invalid_ids' => array_diff($ids, $validIds)
+                    ], 422);
+                }
 
-                // 执行删除（软删除或硬删除）
-                $forceDelete = 'force'; //request()->input('force', false);
-                $article->{$forceDelete ? 'forceDelete' : 'delete'}();
+                $categories = BlogCategory::withCount('articles')->whereIn('id', $ids)->get();
+                foreach ($categories as $category) {
+                    if ($category->articles_count > 0) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "分类id={$category->id}下存在文章，无法删除"
+                        ], 422);
+                    }
+                }
 
-                // 记录审计日志
-                // $this->logArticleDeletion($article);
-
-                // 清理缓存
-                // Cache::tags(['article_' . $id])->flush();
+                // 执行删除
+                BlogCategory::whereIn('id', $ids)->delete();
 
                 return response()->json([
                     'success' => true,
-                    'message' => $forceDelete ? '文章已永久删除' : '文章已进入回收站',
-                    'deleted_at' => now()->toDateTimeString()
+                    'message' => '分类删除成功',
+                    'deleted_at' => Carbon::now()->toDateTimeString()
                 ], 200);
             } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                 return response()->json([
                     'success' => false,
-                    'message' => '文章不存在或已被删除'
+                    'message' => '分类不存在或已被删除'
                 ], 404);
             } catch (\Exception $e) {
-                Log::error('删除文章失败: ' . $e->getMessage(), [
-                    'article_id' => $id,
-                    'user_id' => auth()->id(),
-                    'trace' => $e->getTraceAsString()
+                Log::error('分类删除失败: ' . $e->getMessage(), [
+                    'category_id' => $categoryId,
+                    'user_id' => auth()->id()
                 ]);
 
                 return response()->json([
