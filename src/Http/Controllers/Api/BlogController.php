@@ -28,7 +28,7 @@ class BlogController extends Controller
             'success' => true,
             'data' => $category,
             'message' => '分类创建成功'
-        ], 201);
+        ], 200);
     }
 
     public function updateCategory(UpdateBlogCategoryRequest $request, $categoryId)
@@ -54,7 +54,7 @@ class BlogController extends Controller
                 'success' => true,
                 'data' => $category,
                 'message' => '分类更新成功'
-            ]);
+            ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('分类不存在', ['category_id' => $categoryId]);
@@ -95,7 +95,7 @@ class BlogController extends Controller
             'success' => true,
             'data' => $article,
             'message' => '文章创建成功'
-        ], 201);
+        ], 200);
     }
 
     public function updateArticle(UpdateBlogArticleRequest $request, $articleId)
@@ -119,7 +119,7 @@ class BlogController extends Controller
                     'data' => $article->fresh(),
                     'message' => '文章更新成功',
                     'changes' => $request->all()
-                ]);
+                ], 200);
 
             } catch (\Exception $e) {
                 Log::error('文章更新失败: '.$e->getMessage(), [
@@ -170,7 +170,7 @@ class BlogController extends Controller
             'success' => true,
             'data' => $categories,
             'message' => '分类列表获取成功'
-        ]);
+        ], 200);
     }
 
     public function listArticles(Request $request)
@@ -220,7 +220,7 @@ class BlogController extends Controller
             'success' => true,
             'data' => $articles,
             'message' => '文章列表获取成功'
-        ]);
+        ], 200);
     }
 
     /**
@@ -268,7 +268,7 @@ class BlogController extends Controller
                     'success' => true,
                     'message' => '分类删除成功',
                     'deleted_at' => Carbon::now()->toDateTimeString()
-                ]);
+                ], 200);
 
             } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                 return response()->json([
@@ -323,7 +323,7 @@ class BlogController extends Controller
                 'success' => true,
                 'data' => $this->formatArticleResponse($article),
                 'message' => '文章获取成功'
-            ]);
+            ], 200);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -396,7 +396,7 @@ class BlogController extends Controller
                     'success' => true,
                     'message' => $forceDelete ? '文章已永久删除' : '文章已进入回收站',
                     'deleted_at' => now()->toDateTimeString()
-                ]);
+                ], 200);
 
             } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                 return response()->json([
