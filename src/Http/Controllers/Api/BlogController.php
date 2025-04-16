@@ -175,7 +175,8 @@ class BlogController extends Controller
     {
         // 验证请求参数
         $validated = $request->validate([
-            'per_page' => 'nullable|integer|min:1|max:100',
+            'status' => 'nullable|integer|in:0,1,2', // 0-草稿 1-已发布 2-已下架
+            'per_page' => 'nullable|integer|min:1|max:500',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string|max:512',
             'category_id' => 'nullable|integer|exists:blog_categories,id',
@@ -187,17 +188,20 @@ class BlogController extends Controller
         // 构建基础查询
         $query = BlogArticle::query();
 
+        if (!empty($validated['category_id'])) {
+            $query->where('category_id', $validated['category_id']);
+        }
+
+        if (!empty($validated['status'])) {
+            $query->where('category_id', $validated['status']);
+        }
+
         // 关键词搜索（标题/内容）
         if (!empty($validated['search'])) {
             $query->where(function ($q) use ($validated) {
                 $q->where('title', 'like', '%' . $validated['search'] . '%');
                 // ->orWhere('content', 'like', '%'.$validated['search'].'%');
             });
-        }
-
-        // 分类过滤
-        if (!empty($validated['category_id'])) {
-            $query->where('category_id', $validated['category_id']);
         }
 
         // 排序设置
