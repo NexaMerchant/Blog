@@ -341,33 +341,22 @@ class BlogController extends Controller
     public function showCategory(Request $request, $id)
     {
         try {
-            // 验证ID格式
-            if (!preg_match('/^\d+$/', $id)) {
-                throw new \InvalidArgumentException('分类ID格式错误');
-            }
+            $validated = $request->validate([
+                'with_latest' => 'nullable|integer|min:1|max:5' // 最新文章数量
+            ]);
 
-            // 带缓存的查询
-            $category = Cache::remember("category_{$id}", now()->addHours(2), function() use ($id) {
-                return BlogCategory::withCount(['articles' => function($q) {
-                        $q->where('status', 1); // 只统计已发布文章
-                    }])
-                    ->with(['latestArticles' => function($q) {
-                        $q->select('id', 'title', 'seo_url_key', 'created_at')
-                          ->where('status', 1)
-                          ->orderBy('created_at', 'desc')
-                          ->limit(3);
-                    }])
-                    ->findOrFail($id);
-            });
-
-            // 权限检查（示例：非公开分类需登录）
-            // if ($category->is_private && !auth()->check()) {
-            //     abort(403, '该分类需要登录访问');
-            // }
+            $category = BlogCategory::query()->withCount(['articles' => function ($q) {
+                $q->where('status', 1); // 只统计已发布文章
+            }])->with(['latestArticles' => function ($q) {
+                $q->select('id', 'title', 'seo_url_key', 'created_at')
+                    ->where('status', 1)
+                    ->orderBy('created_at', 'desc')
+                    ->limit(3);
+            }])->findOrFail($id);
 
             return response()->json([
                 'success' => true,
-                'data' => $category,//$this->formatCategoryResponse($category),
+                'data' => $this->formatCategoryResponse($category),
                 'message' => '分类详情获取成功'
             ], 200);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

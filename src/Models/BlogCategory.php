@@ -24,7 +24,7 @@ class BlogCategory extends Model
 
     public function latestArticles()
     {
-        return $this->hasMany(BlogArticle::class)
+        return $this->hasMany(BlogArticle::class, 'category_id')
             ->where('status', 1)
             ->orderBy('created_at', 'desc');
     }
