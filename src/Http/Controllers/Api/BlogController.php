@@ -193,7 +193,7 @@ class BlogController extends Controller
         }
 
         if (!empty($validated['status'])) {
-            $query->where('category_id', $validated['status']);
+            $query->where('status', $validated['status']);
         }
 
         // 关键词搜索（标题/内容）
