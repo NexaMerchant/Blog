@@ -360,12 +360,26 @@ class BlogController extends Controller
 
     public function showCategoryBySlug($seo_url_key)
     {
-        return $this->showCategory(BlogCategory::where('seo_url_key', $seo_url_key)->firstOrFail()->id);
+        $categoryId = BlogCategory::where('seo_url_key', $seo_url_key)->value('id');
+        if (!$categoryId) {
+            return response()->json([
+                'success' => false,
+                'message' => '分类不存在'
+            ], 404);
+        }
+        return $this->showCategory($categoryId);
     }
 
     public function showArticleBySlug($seo_url_key)
     {
-        return $this->showArticle(BlogArticle::where('seo_url_key', $seo_url_key)->firstOrFail()->id);
+        $articleId = BlogArticle::where('seo_url_key', $seo_url_key)->value('id');
+        if (!$articleId) {
+            return response()->json([
+                'success' => false,
+                'message' => '文章不存在'
+            ], 404);
+        }
+        return $this->showArticle($articleId);
     }
 
     // 格式化响应数据

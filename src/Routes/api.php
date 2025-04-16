@@ -68,7 +68,7 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
             // 文章接口
             Route::get('articles', 'listArticles')->name('v1.blog.articles.index');
             Route::get('articles/{id}', 'showArticle')->name('v1.blog.articles.show');
-            Route::get('articles/by-slug/{seo_url_key}', 'showCategoryBySlug')->name('v1.blog.categories.show.slug');
+            Route::get('articles/by-slug/{seo_url_key}', 'showArticleBySlug')->name('v1.blog.categories.show.slug');
         });
 
 });
