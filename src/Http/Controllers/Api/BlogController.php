@@ -529,4 +529,113 @@ class BlogController extends Controller
             ]);
         });
     }
+
+    public function batchDeleteArticle(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100', // 限制每次最多操作100条
+            'ids.*' => 'integer|exists:blog_articles,id',
+        ]);
+
+        $ids = $validated['ids'];
+        // 验证ID数组
+        if (empty($ids)) {
+            return response()->json([
+                'success' => false,
+                'message' => '请指定要删除的文章ID'
+            ], 400);
+        }
+
+        // 检查所有ID是否有效
+        $validIds = BlogArticle::whereIn('id', $ids)
+            ->pluck('id')
+            ->toArray();
+
+        if (count($ids) !== count($validIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => '包含无效的文章ID',
+                'invalid_ids' => array_diff($ids, $validIds)
+            ], 422);
+        }
+
+        // 执行删除
+        BlogArticle::whereIn('id', $ids)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => '删除成功',
+            'deleted_ids' => $ids,
+            'count' => count($ids)
+        ]);
+    }
+
+    public function batchDeleteCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100', // 限制每次最多操作100条
+            'ids.*' => 'integer|exists:blog_categories,id',
+        ]);
+
+        $ids = $validated['ids'];
+
+        return DB::transaction(function () use ($ids) {
+            try {
+                // 验证ID数组
+                if (empty($ids)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '请指定要删除的分类ID'
+                    ], 400);
+                }
+
+                // 检查所有ID是否有效
+                $validIds = BlogCategory::whereIn('id', $ids)
+                    ->pluck('id')
+                    ->toArray();
+
+                if (count($ids) !== count($validIds)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => '包含无效的分类ID',
+                        'invalid_ids' => array_diff($ids, $validIds)
+                    ], 422);
+                }
+
+                $categories = BlogCategory::withCount('articles')->whereIn('id', $ids)->get();
+                foreach ($categories as $category) {
+                    if ($category->articles_count > 0) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "分类id={$category->id}下存在文章，无法删除"
+                        ], 422);
+                    }
+                }
+
+                // 执行删除
+                BlogCategory::whereIn('id', $ids)->delete();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => '分类删除成功',
+                    'deleted_at' => Carbon::now()->toDateTimeString()
+                ], 200);
+            } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '分类不存在或已被删除'
+                ], 404);
+            } catch (\Exception $e) {
+                Log::error('分类删除失败: ' . $e->getMessage(), [
+                    'category_id' => $categoryId,
+                    'user_id' => auth()->id()
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => '删除失败: ' . $e->getMessage()
+                ], 500);
+            }
+        });
+    }
 }

@@ -36,6 +36,9 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
                     ->where('id', '^[0-9,]+$') // 允许数字或逗号分隔的ID
                     ->name('v1.admin.blog.categories.destroy');
 
+                // 批量删除分类
+                Route::patch('categories/batch-delete', 'batchDeleteCategory')->name('v1.admin.blog.articles.batch_category');
+
                 // 文章接口
                 Route::post('articles', 'storeArticle')->name('v1.admin.blog.articles.store');
                 Route::get('articles', 'listArticles')->name('v1.admin.blog.articles.index');
@@ -47,6 +50,9 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
 
                 // 批量更新文章状态
                 Route::patch('articles/batch-status', 'batchUpdateArticleStatus')->name('v1.admin.blog.articles.batch_status');
+
+                // 批量删除文章
+                Route::patch('articles/batch-delete', 'batchDeleteArticle')->name('v1.admin.blog.articles.batch_delete');
             });
     });
 
