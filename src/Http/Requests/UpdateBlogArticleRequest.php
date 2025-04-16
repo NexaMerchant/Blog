@@ -28,7 +28,7 @@ class UpdateBlogArticleRequest extends FormRequest
                 'sometimes',
                 'string',
                 'max:255',
-                Rule::unique('ba_blog_articles', 'seo_url_key')->ignore($articleId)
+                Rule::unique('blog_articles', 'seo_url_key')->ignore($articleId)
             ],
             'cover_image' => 'nullable|string|max:255'
         ];
