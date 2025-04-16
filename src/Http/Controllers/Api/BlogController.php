@@ -187,7 +187,7 @@ class BlogController extends Controller
         ]);
 
         // 构建基础查询
-        $query = BlogArticle::query();
+        $query = BlogArticle::query()->with('category');
 
         if (!empty($validated['category_id'])) {
             $query->where('category_id', $validated['category_id']);
