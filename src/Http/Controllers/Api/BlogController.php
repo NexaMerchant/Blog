@@ -229,6 +229,9 @@ class BlogController extends Controller
         // 执行分页查询
         $articles = $query->paginate($validated['per_page'] ?? 10);
 
+        // 返回结果补充按浏览量推荐三篇文章
+        $articles['recommended_articles'] = BlogArticle::query()->latest('view_count')->take(3)->get();
+
         // 格式化响应
         return response()->json([
             'success' => true,
@@ -287,9 +290,9 @@ class BlogController extends Controller
                 ->findOrFail($id);
 
             // 记录访问量（队列处理）
-            // dispatch(function () use ($id) {
-            //     BlogArticle::where('id', $id)->increment('view_count');
-            // })->afterResponse();
+            dispatch(function () use ($id) {
+                BlogArticle::where('id', $id)->increment('view_count');
+            })->afterResponse();
 
             return response()->json([
                 'success' => true,
@@ -426,11 +429,13 @@ class BlogController extends Controller
         return [
             'id' => $article->id,
             'title' => $article->title,
-            // 'description' => $article->description,
+            'description' => $article->description,
             'content' => $article->content,
             'cover_image' => asset($article->cover_image),
             'category' => $article->category ?: null,
+            'view_count' => $article->view_count,
             'related_articles' => $article->relatedArticles->isEmpty() ? null : $article->relatedArticles,
+            'recommended_articles' => BlogArticle::query()->latest('updated_at')->take(3)->get(),
             'seo_meta' => [
                 'title' => $article->seo_meta_title,
                 'keywords' => $article->seo_meta_keywords,

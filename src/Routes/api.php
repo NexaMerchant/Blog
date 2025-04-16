@@ -62,7 +62,7 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
         ->group(function () {
             // 分类接口
             Route::get('categories', 'listCategories')->name('v1.blog.categories.index');
-            Route::get('categories/{id}', 'showCategory')->name('v1.blog.categories.show');
+            // Route::get('categories/{id}', 'showCategory')->name('v1.blog.categories.show');
             Route::get('categories/by-slug/{seo_url_key}', 'showCategoryBySlug')->name('v1.blog.categories.show.slug');
 
             // 文章接口
