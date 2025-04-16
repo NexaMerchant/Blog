@@ -412,7 +412,7 @@ class BlogController extends Controller
         return [
             'id' => $article->id,
             'title' => $article->title,
-            'description' => $article->description,
+            // 'description' => $article->description,
             'content' => $article->content,
             'cover_image' => asset($article->cover_image),
             'category' => $article->category ?: null,
