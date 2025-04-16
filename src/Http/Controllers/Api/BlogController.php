@@ -5,9 +5,9 @@ namespace NexaMerchant\Blog\Http\Controllers\Api;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use NexaMerchant\Blog\Models\BlogArticle;
 use NexaMerchant\Blog\Models\BlogCategory;
@@ -175,7 +175,7 @@ class BlogController extends Controller
     {
         // 验证请求参数
         $validated = $request->validate([
-            'status' => 'nullable|integer|in:0,1,2', // 0-草稿 1-已发布 2-已下架
+            'status' => 'nullable|integer|in:1,2', // 1-已发布 2-已下架
             'per_page' => 'nullable|integer|min:1|max:500',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string|max:512',
@@ -488,6 +488,45 @@ class BlogController extends Controller
                     'message' => '删除失败: ' . $e->getMessage()
                 ], 500);
             }
+        });
+    }
+
+    public function batchUpdateArticleStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1|max:100', // 限制每次最多操作100条
+            'ids.*' => 'integer|exists:blog_articles,id',
+            'status' => [
+                'required',
+                Rule::in([1, 2]), // 1-已发布 2-已下架
+            ],
+        ]);
+
+        return DB::transaction(function () use ($validated) {
+            // 获取可操作的文章（防止越权更新）
+            $operableArticles = BlogArticle::whereIn('id', $validated['ids'])->pluck('id');
+
+            if (count($operableArticles) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '没有找到可操作的文章'
+                ], 403);
+            }
+
+            // 执行更新
+            $affected = BlogArticle::whereIn('id', $operableArticles)->update([
+                'status' => $validated['status'],
+                'updated_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "成功更新 {$affected} 篇文章状态",
+                'data' => [
+                    'updated_ids' => $operableArticles,
+                    'new_status' => $validated['status']
+                ]
+            ]);
         });
     }
 }
