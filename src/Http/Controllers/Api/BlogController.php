@@ -250,7 +250,7 @@ class BlogController extends Controller
         return $imageUrl;
     }
 
-    public function showArticle(Request $request, $id)
+    public function showArticle($id)
     {
         try {
             // 验证ID有效性
@@ -261,17 +261,17 @@ class BlogController extends Controller
 
             // 构建查询
             $article = BlogArticle::query()
-                ->when($request->boolean('with_category'), function ($query) {
-                    $query->with(['category' => function ($q) {
-                        $q->select('id', 'name', 'seo_url_key');
-                    }]);
-                })
-                ->when($request->filled('with_related'), function ($query) use ($id, $request) {
-                    $query->with(['relatedArticles' => function ($q) use ($request) {
-                        $q->limit($request->input('with_related', 3))
-                            ->select('id', 'title', 'seo_url_key', 'created_at');
-                    }]);
-                })
+                // ->when($request->boolean('with_category'), function ($query) {
+                //     $query->with(['category' => function ($q) {
+                //         $q->select('id', 'name', 'seo_url_key');
+                //     }]);
+                // })
+                // ->when($request->filled('with_related'), function ($query) use ($id, $request) {
+                //     $query->with(['relatedArticles' => function ($q) use ($request) {
+                //         $q->limit($request->input('with_related', 3))
+                //             ->select('id', 'title', 'seo_url_key', 'created_at');
+                //     }]);
+                // })
                 ->findOrFail($id);
 
             // 记录访问量（队列处理）
@@ -302,12 +302,12 @@ class BlogController extends Controller
         }
     }
 
-    public function showCategory(Request $request, $id)
+    public function showCategory($id)
     {
         try {
-            $validated = $request->validate([
-                'with_latest' => 'nullable|integer|min:1|max:5' // 最新文章数量
-            ]);
+            // $validated = $request->validate([
+            //     'with_latest' => 'nullable|integer|min:1|max:5' // 最新文章数量
+            // ]);
 
             $category = BlogCategory::query()->withCount(['articles' => function ($q) {
                 $q->where('status', 1); // 只统计已发布文章
@@ -339,6 +339,16 @@ class BlogController extends Controller
                 'message' => '服务器错误' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function showCategoryBySlug($seo_url_key)
+    {
+        return $this->showCategory(BlogCategory::where('seo_url_key', $seo_url_key)->firstOrFail()->id);
+    }
+
+    public function showArticleBySlug($seo_url_key)
+    {
+        return $this->showArticle(BlogArticle::where('seo_url_key', $seo_url_key)->firstOrFail()->id);
     }
 
     // 格式化响应数据
