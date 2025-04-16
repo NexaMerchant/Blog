@@ -21,4 +21,11 @@ class BlogCategory extends Model
     {
         return $this->hasMany(BlogArticle::class, 'category_id');
     }
+
+    public function latestArticles()
+    {
+        return $this->hasMany(BlogArticle::class)
+            ->where('status', 1)
+            ->orderBy('created_at', 'desc');
+    }
 }

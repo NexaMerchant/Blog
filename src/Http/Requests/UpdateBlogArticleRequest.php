@@ -20,7 +20,7 @@ class UpdateBlogArticleRequest extends FormRequest
             'title' => 'sometimes|string|max:512',
             'content' => 'sometimes|string',
             'category_id' => 'sometimes|integer|exists:blog_categories,id',
-            'status' => 'sometimes|integer|in:0,1',
+            'status' => 'sometimes|integer|in:1,2',
             'seo_meta_title' => 'sometimes|string|max:255',
             'seo_meta_keywords' => 'sometimes|string|max:255',
             'seo_meta_description' => 'sometimes|string|max:255',

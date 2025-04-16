@@ -48,12 +48,12 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
         ->prefix('blog')
         ->group(function () {
             // 分类接口
-            Route::get('categories', 'listCategories')->name('v1.admin.blog.categories.index');
-            Route::get('categories/{id}', 'showCategory')->name('v1.admin.blog.categories.show');
+            Route::get('categories', 'listCategories')->name('v1.blog.categories.index');
+            Route::get('categories/{id}', 'showCategory')->name('v1.blog.categories.show');
 
             // 文章接口
-            Route::get('articles', 'listArticles')->name('v1.admin.blog.articles.index');
-            Route::get('articles/{id}', 'showArticle')->name('v1.admin.blog.articles.show');
+            Route::get('articles', 'listArticles')->name('v1.blog.articles.index');
+            Route::get('articles/{id}', 'showArticle')->name('v1.blog.articles.show');
         });
 
 });

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use NexaMerchant\Blog\Models\BlogArticle;
 use NexaMerchant\Blog\Models\BlogCategory;
@@ -55,14 +56,12 @@ class BlogController extends Controller
                 'data' => $category,
                 'message' => '分类更新成功'
             ], 200);
-
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::error('分类不存在', ['category_id' => $categoryId]);
             return response()->json([
                 'success' => false,
                 'message' => '指定的分类不存在'
             ], 404);
-
         } catch (\Exception $e) {
             Log::error('分类更新失败', [
                 'error' => $e->getMessage(),
@@ -120,9 +119,8 @@ class BlogController extends Controller
                     'message' => '文章更新成功',
                     'changes' => $request->all()
                 ], 200);
-
             } catch (\Exception $e) {
-                Log::error('文章更新失败: '.$e->getMessage(), [
+                Log::error('文章更新失败: ' . $e->getMessage(), [
                     'article_id' => $articleId,
                     'user_id' => auth()->id(),
                     'trace' => $e->getTraceAsString()
@@ -130,7 +128,7 @@ class BlogController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => '更新失败: '.$e->getMessage()
+                    'message' => '更新失败: ' . $e->getMessage()
                 ], 500);
             }
         });
@@ -152,8 +150,8 @@ class BlogController extends Controller
 
         // 搜索条件
         if (!empty($validated['search'])) {
-            $query->where('name', 'like', '%'.$validated['search'].'%')
-                ->orWhere('description', 'like', '%'.$validated['search'].'%');
+            $query->where('name', 'like', '%' . $validated['search'] . '%')
+                ->orWhere('description', 'like', '%' . $validated['search'] . '%');
         }
 
         // 排序
@@ -191,8 +189,8 @@ class BlogController extends Controller
 
         // 关键词搜索（标题/内容）
         if (!empty($validated['search'])) {
-            $query->where(function($q) use ($validated) {
-                $q->where('title', 'like', '%'.$validated['search'].'%');
+            $query->where(function ($q) use ($validated) {
+                $q->where('title', 'like', '%' . $validated['search'] . '%');
                 // ->orWhere('content', 'like', '%'.$validated['search'].'%');
             });
         }
@@ -269,22 +267,20 @@ class BlogController extends Controller
                     'message' => '分类删除成功',
                     'deleted_at' => Carbon::now()->toDateTimeString()
                 ], 200);
-
             } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                 return response()->json([
                     'success' => false,
                     'message' => '分类不存在或已被删除'
                 ], 404);
-
             } catch (\Exception $e) {
-                Log::error('分类删除失败: '.$e->getMessage(), [
+                Log::error('分类删除失败: ' . $e->getMessage(), [
                     'category_id' => $categoryId,
                     'user_id' => auth()->id()
                 ]);
 
                 return response()->json([
                     'success' => false,
-                    'message' => '删除失败: '.$e->getMessage()
+                    'message' => '删除失败: ' . $e->getMessage()
                 ], 500);
             }
         });
@@ -309,7 +305,7 @@ class BlogController extends Controller
                 ->when($request->filled('with_related'), function ($query) use ($id, $request) {
                     $query->with(['relatedArticles' => function ($q) use ($request) {
                         $q->limit($request->input('with_related', 3))
-                        ->select('id', 'title', 'seo_url_key', 'created_at');
+                            ->select('id', 'title', 'seo_url_key', 'created_at');
                     }]);
                 })
                 ->findOrFail($id);
@@ -324,15 +320,13 @@ class BlogController extends Controller
                 'data' => $this->formatArticleResponse($article),
                 'message' => '文章获取成功'
             ], 200);
-
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => '文章不存在'
             ], 404);
-
         } catch (\Exception $e) {
-            \Log::error('获取文章失败: '.$e->getMessage(), [
+            \Log::error('获取文章失败: ' . $e->getMessage(), [
                 'article_id' => $id,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -342,6 +336,86 @@ class BlogController extends Controller
                 'message' => '服务器错误'
             ], 500);
         }
+    }
+
+    public function showCategory(Request $request, $id)
+    {
+        try {
+            // 验证ID格式
+            if (!preg_match('/^\d+$/', $id)) {
+                throw new \InvalidArgumentException('分类ID格式错误');
+            }
+
+            // 带缓存的查询
+            $category = Cache::remember("category_{$id}", now()->addHours(2), function() use ($id) {
+                return BlogCategory::withCount(['articles' => function($q) {
+                        $q->where('status', 1); // 只统计已发布文章
+                    }])
+                    ->with(['latestArticles' => function($q) {
+                        $q->select('id', 'title', 'seo_url_key', 'created_at')
+                          ->where('status', 1)
+                          ->orderBy('created_at', 'desc')
+                          ->limit(3);
+                    }])
+                    ->findOrFail($id);
+            });
+
+            // 权限检查（示例：非公开分类需登录）
+            // if ($category->is_private && !auth()->check()) {
+            //     abort(403, '该分类需要登录访问');
+            // }
+
+            return response()->json([
+                'success' => true,
+                'data' => $category,//$this->formatCategoryResponse($category),
+                'message' => '分类详情获取成功'
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => '分类不存在'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('获取分类失败: ' . $e->getMessage(), [
+                'category_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => '服务器错误' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // 格式化响应数据
+    protected function formatCategoryResponse($category)
+    {
+        return [
+            'id' => $category->id,
+            'name' => $category->name,
+            'description' => $category->description,
+            'seo_meta' => [
+                'title' => $category->seo_meta_title,
+                'keywords' => $category->seo_meta_keywords,
+                'description' => $category->seo_meta_description,
+                'url_key' => $category->seo_url_key
+            ],
+            'statistics' => [
+                'articles_count' => $category->articles_count,
+                'last_updated' => $category->updated_at->diffForHumans()
+            ],
+            'latest_articles' => $category->latestArticles->map(function ($article) {
+                return [
+                    'id' => $article->id,
+                    'title' => $article->title,
+                    'url' => route('articles.show', $article->seo_url_key),
+                    'created_at' => $article->created_at->format('Y-m-d')
+                ];
+            }),
+            'created_at' => $category->created_at->toDateTimeString(),
+            'updated_at' => $category->updated_at->toDateTimeString()
+        ];
     }
 
     // 格式化响应数据
@@ -383,7 +457,7 @@ class BlogController extends Controller
                 // $this->createArticleBackup($article);
 
                 // 执行删除（软删除或硬删除）
-                $forceDelete = 'force';//request()->input('force', false);
+                $forceDelete = 'force'; //request()->input('force', false);
                 $article->{$forceDelete ? 'forceDelete' : 'delete'}();
 
                 // 记录审计日志
@@ -397,15 +471,13 @@ class BlogController extends Controller
                     'message' => $forceDelete ? '文章已永久删除' : '文章已进入回收站',
                     'deleted_at' => now()->toDateTimeString()
                 ], 200);
-
             } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
                 return response()->json([
                     'success' => false,
                     'message' => '文章不存在或已被删除'
                 ], 404);
-
             } catch (\Exception $e) {
-                Log::error('删除文章失败: '.$e->getMessage(), [
+                Log::error('删除文章失败: ' . $e->getMessage(), [
                     'article_id' => $id,
                     'user_id' => auth()->id(),
                     'trace' => $e->getTraceAsString()
@@ -413,7 +485,7 @@ class BlogController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => '删除失败: '.$e->getMessage()
+                    'message' => '删除失败: ' . $e->getMessage()
                 ], 500);
             }
         });
