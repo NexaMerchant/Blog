@@ -175,6 +175,7 @@ class BlogController extends Controller
     {
         // 验证请求参数
         $validated = $request->validate([
+            'category_url_key' => 'nullable|string|max:512',
             'status' => 'nullable|integer|in:1,2', // 1-已发布 2-已下架
             'per_page' => 'nullable|integer|min:1|max:500',
             'page' => 'nullable|integer|min:1',
@@ -194,6 +195,17 @@ class BlogController extends Controller
 
         if (!empty($validated['status'])) {
             $query->where('status', $validated['status']);
+        }
+
+        if (!empty($validated['category_url_key'])) {
+            $categoryId = BlogCategory::where('seo_url_key', $validated['category_url_key'])->value('id');
+            if (!$categoryId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '指定的分类不存在'
+                ], 404);
+            }
+            $query->where('category_id', $categoryId);
         }
 
         // 关键词搜索（标题/内容）
@@ -316,6 +328,11 @@ class BlogController extends Controller
                     ->where('status', 1)
                     ->orderBy('created_at', 'desc')
                     ->limit(3);
+            }])->with(['articles' => function ($q) {
+                $q->select('id', 'title', 'seo_url_key', 'created_at')
+                    ->where('status', 1)
+                    ->orderBy('created_at', 'desc')
+                    ->limit(3);
             }])->findOrFail($id);
 
             return response()->json([
@@ -368,6 +385,14 @@ class BlogController extends Controller
                 'articles_count' => $category->articles_count,
                 'last_updated' => $category->updated_at->diffForHumans()
             ],
+            'articles' => $category->articles->map(function ($article) {
+                return [
+                    'id' => $article->id,
+                    'title' => $article->title,
+                    'url' => route('articles.show', $article->seo_url_key),
+                    'created_at' => $article->created_at->format('Y-m-d')
+                ];
+            }),
             'latest_articles' => $category->latestArticles->map(function ($article) {
                 return [
                     'id' => $article->id,
