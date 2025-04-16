@@ -14,7 +14,7 @@ class UpdateBlogArticleRequest extends FormRequest
 
     public function rules()
     {
-        $articleId = $this->route('article');
+        $articleId = $this->route('id');
 
         return [
             'title' => 'sometimes|string|max:512',
