@@ -267,7 +267,7 @@ class BlogController extends Controller
         ]);
 
         $cacheKey = 'article_recommendations_' . $validated['type'] . '_' . md5(json_encode($validated));
-        $expiresAt = now()->addHours(2); // 缓存2小时
+        $expiresAt = now()->addHours(1); // 缓存2小时
         $fields = [
             'id',
             'title',
