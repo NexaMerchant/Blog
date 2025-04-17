@@ -16,6 +16,7 @@ class StoreBlogArticleRequest extends FormRequest
         return [
             'title' => 'required|string|max:512',
             'content' => 'nullable|string',
+            'description' => 'sometimes|string',
             // 'cover_image' => 'required|string|max:255',
             'category_id' => 'required|integer|exists:blog_categories,id',
             'seo_meta_title' => 'required|string|max:255',

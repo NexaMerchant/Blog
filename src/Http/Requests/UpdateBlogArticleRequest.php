@@ -18,6 +18,7 @@ class UpdateBlogArticleRequest extends FormRequest
 
         return [
             'title' => 'sometimes|string|max:512',
+            'description' => 'sometimes|string',
             'content' => 'sometimes|string',
             'category_id' => 'sometimes|integer|exists:blog_categories,id',
             'status' => 'sometimes|integer|in:1,2',
