@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use NexaMerchant\Blog\Models\BlogArticle;
 use NexaMerchant\Blog\Models\BlogCategory;
@@ -226,17 +227,84 @@ class BlogController extends Controller
             $query->with('category');
         }
 
+        $fields = [
+            'id',
+            'title',
+            'cover_image',
+            'description',
+            'created_at',
+            'updated_at',
+            'view_count',
+            'category_id',
+            'status',
+            'seo_meta_title',
+            'seo_meta_keywords',
+            'seo_meta_description',
+            'seo_url_key'
+        ];
+
         // 执行分页查询
-        $articles = $query->paginate($validated['per_page'] ?? 10);
+        $articles = $query->select($fields)->paginate($validated['per_page'] ?? 10);
 
         // 返回结果补充按浏览量推荐三篇文章
-        $articles['recommended_articles'] = BlogArticle::query()->latest('view_count')->take(3)->get();
+        // $articles['recommended_articles'] = BlogArticle::query()->latest('view_count')->take(3)->get();
 
         // 格式化响应
         return response()->json([
             'success' => true,
             'data' => $articles,
             'message' => '文章列表获取成功'
+        ], 200);
+    }
+
+    public function recommendArticles(Request $request)
+    {
+        $validated = $request->validate([
+            'limit' => 'nullable|integer|min:1|max:20',
+            // 'exclude_id' => 'nullable|integer|exists:blog_articles,id',
+            // 'exclude_id' => 'integer|exists:blog_articles,id',
+            'type' => 'nullable|in:latest,popular'
+        ]);
+
+        $cacheKey = 'article_recommendations_' . $validated['type'] . '_' . md5(json_encode($validated));
+        $expiresAt = now()->addHours(2); // 缓存2小时
+        $fields = [
+            'id',
+            'title',
+            'cover_image',
+            'description',
+            'created_at',
+            'updated_at',
+            'view_count',
+            'category_id',
+            'status',
+            'seo_meta_title',
+            'seo_meta_keywords',
+            'seo_meta_description',
+            'seo_url_key'
+        ];
+        $articles = Cache::remember($cacheKey, $expiresAt, function () use ($validated, $fields) {
+            return BlogArticle::query()
+                ->where('status', 1) // 只推荐已发布文章
+                ->when($validated['exclude_id'] ?? false, function ($q) use ($validated) {
+                    $q->where('id', '!=', $validated['exclude_id']); // 排除当前文章
+                })
+                ->when($validated['type'] === 'popular', function ($q) {
+                    $q->orderBy('view_count', 'desc');
+                }, function ($q) {
+                    $q->latest();
+                })
+                ->take($validated['limit'] ?? 3)
+                ->select($fields)
+                ->get();
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $articles,
+            'cache' => [
+                'expires_at' => $expiresAt->toDateTimeString()
+            ]
         ], 200);
     }
 
@@ -435,7 +503,7 @@ class BlogController extends Controller
             'category' => $article->category ?: null,
             'view_count' => $article->view_count,
             'related_articles' => $article->relatedArticles->isEmpty() ? null : $article->relatedArticles,
-            'recommended_articles' => BlogArticle::query()->latest('updated_at')->take(3)->get(),
+            // 'recommended_articles' => BlogArticle::query()->latest('updated_at')->take(3)->get(),
             'seo_meta' => [
                 'title' => $article->seo_meta_title,
                 'keywords' => $article->seo_meta_keywords,
