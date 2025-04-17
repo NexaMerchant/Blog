@@ -287,7 +287,7 @@ class BlogController extends Controller
             return BlogArticle::query()
                 ->where('status', 1) // 只推荐已发布文章
                 ->when($validated['exclude_id'] ?? false, function ($q) use ($validated) {
-                    $q->where('id', '!=', $validated['exclude_id']); // 排除当前文章
+                    $q->where('seo_url_key', '!=', $validated['seo_url_key']); // 排除当前文章
                 })
                 ->when($validated['type'] === 'popular', function ($q) {
                     $q->orderBy('view_count', 'desc');
