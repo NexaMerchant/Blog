@@ -13,6 +13,7 @@ class BlogArticle extends Model
 
     protected $fillable = [
         'title',
+        'description',
         'content',
         'cover_image',
         'category_id',
