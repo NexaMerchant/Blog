@@ -286,7 +286,7 @@ class BlogController extends Controller
         $articles = Cache::remember($cacheKey, $expiresAt, function () use ($validated, $fields) {
             return BlogArticle::query()
                 ->where('status', 1) // 只推荐已发布文章
-                ->when($validated['exclude_id'] ?? false, function ($q) use ($validated) {
+                ->when($validated['seo_url_key'] ?? false, function ($q) use ($validated) {
                     $q->where('seo_url_key', '!=', $validated['seo_url_key']); // 排除当前文章
                 })
                 ->when($validated['type'] === 'popular', function ($q) {
