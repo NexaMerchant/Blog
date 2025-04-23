@@ -19,6 +19,8 @@ use NexaMerchant\Blog\Http\Requests\UpdateBlogCategoryRequest;
 
 class BlogController extends Controller
 {
+    const CACHE_KEY_ARTICLE_RECOMMEND = 'article_recommendations_cache';
+
     // 新增分类
     public function storeCategory(StoreBlogCategoryRequest $request)
     {
@@ -90,6 +92,8 @@ class BlogController extends Controller
         ]);
 
         $article = BlogArticle::create($validated);
+
+        Cache::tags([self::CACHE_KEY_ARTICLE_RECOMMEND])->flush();
 
         return response()->json([
             'success' => true,
@@ -266,7 +270,6 @@ class BlogController extends Controller
             'type' => 'nullable|in:latest,popular'
         ]);
 
-        $cacheKey = 'article_recommendations_' . $validated['type'] . '_' . md5(json_encode($validated));
         $expiresAt = now()->addHours(1); // 缓存2小时
         $fields = [
             'id',
@@ -283,7 +286,7 @@ class BlogController extends Controller
             'seo_meta_description',
             'seo_url_key'
         ];
-        $articles = Cache::remember($cacheKey, $expiresAt, function () use ($validated, $fields) {
+        $articles = Cache::remember(self::CACHE_KEY_ARTICLE_RECOMMEND, $expiresAt, function () use ($validated, $fields) {
             return BlogArticle::query()
                 ->where('status', 1) // 只推荐已发布文章
                 ->when($validated['seo_url_key'] ?? false, function ($q) use ($validated) {
@@ -642,6 +645,8 @@ class BlogController extends Controller
                 'updated_at' => now()
             ]);
 
+            Cache::tags([self::CACHE_KEY_ARTICLE_RECOMMEND])->flush();
+
             return response()->json([
                 'success' => true,
                 'message' => "成功更新 {$affected} 篇文章状态",
@@ -684,6 +689,8 @@ class BlogController extends Controller
 
         // 执行删除
         BlogArticle::whereIn('id', $ids)->delete();
+
+        Cache::tags([self::CACHE_KEY_ARTICLE_RECOMMEND])->flush();
 
         return response()->json([
             'success' => true,
