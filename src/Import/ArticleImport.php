@@ -14,7 +14,7 @@ class ArticleImport implements ToModel, WithHeadingRow
         return [
             '*.title' => 'required|string|max:512',
             '*.content' => 'required|string',
-            '*.description' => 'sometimes|string',
+            // '*.description' => 'nullable|string',
             '*.category_id' => 'required|integer|exists:blog_categories,id',
             '*.seo_meta_title' => 'nullable|string|max:512',
             '*.seo_meta_keywords' => 'nullable|string|max:512',
@@ -27,6 +27,8 @@ class ArticleImport implements ToModel, WithHeadingRow
     {
         $blogController = new BlogController();
         $row['cover_image'] = $blogController->extractFirstImageFromContent($row['content']);
+        // desc from content 截取200个字符
+        $row['description'] = mb_substr($row['content'], 0, 200);
         $row['created_at'] = date('Y-m-d H:i:s');
         $row['updated_at'] = date('Y-m-d H:i:s');
 
