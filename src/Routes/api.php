@@ -48,6 +48,9 @@ Route::group(['middleware' => 'api', 'prefix' => 'api/v1'], function () {
                     ->where('id', '^[0-9,]+$') // 允许数字或逗号分隔的ID
                     ->name('v1.admin.blog.articles.destroy');
 
+                // 批量上传文章
+                Route::post('articles-upload', 'articlesUpload')->name('v1.admin.blog.articles.upload');
+
                 // 批量更新文章状态
                 Route::patch('articles/batch-status', 'batchUpdateArticleStatus')->name('v1.admin.blog.articles.batch_status');
 

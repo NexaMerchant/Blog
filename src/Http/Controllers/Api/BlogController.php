@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use NexaMerchant\Blog\Models\BlogArticle;
@@ -16,6 +17,7 @@ use NexaMerchant\Blog\Http\Requests\StoreBlogArticleRequest;
 use NexaMerchant\Blog\Http\Requests\StoreBlogCategoryRequest;
 use NexaMerchant\Blog\Http\Requests\UpdateBlogArticleRequest;
 use NexaMerchant\Blog\Http\Requests\UpdateBlogCategoryRequest;
+use NexaMerchant\Blog\Import\ArticleImport;
 
 class BlogController extends Controller
 {
@@ -314,11 +316,11 @@ class BlogController extends Controller
     /**
      * 从HTML内容中提取第一张图片URL
      */
-    private function extractFirstImageFromContent(string $content): ?string
+    public function extractFirstImageFromContent(string $content): ?string
     {
         // 方案1：正则匹配（简单HTML内容）
         preg_match('/<img[^>]+src="([^">]+)"/', $content, $matches);
-        $imageUrl = $matches[1] ?? null;
+        $imageUrl = $matches[1] ?? '';
 
         // 方案2：DOM解析（更复杂的HTML）
         /*
@@ -767,5 +769,41 @@ class BlogController extends Controller
                 ], 500);
             }
         });
+    }
+
+    public function articlesUpload(Request $request)
+    {
+        // return response()->json([
+        //     'success' => false,
+        //     'message' => $request
+        // ], 500);
+        $this->validate(request(), [
+            'file' => 'required|mimes:xls,xlsx',
+        ]);
+
+        // return response()->json([
+        //     'success' => false,
+        //     'message' => dump($request)
+        // ], 500);
+
+        try {
+            Excel::import(new ArticleImport, request()->file('file'));
+
+            return response()->json([
+                'success' => true,
+                'message' => '导入成功',
+            ], 200);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            return response()->json([
+                'message'  => 'Import failed due to validation errors.',
+                'errors'   => $failures,
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An error occurred during import.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 }

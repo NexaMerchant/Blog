@@ -15,13 +15,12 @@ class StoreBlogArticleRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:512',
-            'content' => 'nullable|string',
-            'description' => 'sometimes|string',
-            // 'cover_image' => 'required|string|max:255',
+            'content' => 'required|string',
+            'description' => 'nullable|string',
             'category_id' => 'required|integer|exists:blog_categories,id',
-            'seo_meta_title' => 'required|string|max:255',
-            'seo_meta_keywords' => 'required|string|max:255',
-            'seo_meta_description' => 'required|string|max:255',
+            'seo_meta_title' => 'nullable|string|max:512',
+            'seo_meta_keywords' => 'nullable|string|max:512',
+            'seo_meta_description' => 'nullable|string',
             'seo_url_key' => 'required|string|max:255|unique:blog_articles,seo_url_key'
         ];
     }

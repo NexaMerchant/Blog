@@ -22,9 +22,9 @@ class UpdateBlogArticleRequest extends FormRequest
             'content' => 'sometimes|string',
             'category_id' => 'sometimes|integer|exists:blog_categories,id',
             'status' => 'sometimes|integer|in:1,2',
-            'seo_meta_title' => 'sometimes|string|max:255',
-            'seo_meta_keywords' => 'sometimes|string|max:255',
-            'seo_meta_description' => 'sometimes|string|max:255',
+            'seo_meta_title' => 'sometimes|string|max:512',
+            'seo_meta_keywords' => 'sometimes|string|max:512',
+            'seo_meta_description' => 'sometimes|string',
             'seo_url_key' => [
                 'sometimes',
                 'string',
