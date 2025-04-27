@@ -29,6 +29,9 @@ class ArticleImport implements ToModel, WithHeadingRow
         $row['cover_image'] = $blogController->extractFirstImageFromContent($row['content']);
         // desc from content 截取200个字符
         $row['description'] = mb_substr($row['content'], 0, 200);
+        $row['seo_meta_title'] = $row['seo_meta_title'] ?: '';
+        $row['seo_meta_keywords'] = $row['seo_meta_keywords'] ?: '';
+        $row['seo_meta_description'] = $row['seo_meta_description'] ?: '';
         $row['created_at'] = date('Y-m-d H:i:s');
         $row['updated_at'] = date('Y-m-d H:i:s');
 
