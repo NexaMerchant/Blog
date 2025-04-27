@@ -773,21 +773,12 @@ class BlogController extends Controller
 
     public function articlesUpload(Request $request)
     {
-        // return response()->json([
-        //     'success' => false,
-        //     'message' => $request
-        // ], 500);
-        $this->validate(request(), [
+        $this->validate($request, [
             'file' => 'required|mimes:xls,xlsx',
         ]);
 
-        // return response()->json([
-        //     'success' => false,
-        //     'message' => dump($request)
-        // ], 500);
-
         try {
-            Excel::import(new ArticleImport, request()->file('file'));
+            Excel::import(new ArticleImport, $request->file('file'));
 
             return response()->json([
                 'success' => true,
