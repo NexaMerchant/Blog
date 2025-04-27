@@ -778,11 +778,13 @@ class BlogController extends Controller
         ]);
 
         try {
+            $path = $request->file('file')->store('uploads', 'local');
             Excel::import(new ArticleImport, $request->file('file'));
 
             return response()->json([
                 'success' => true,
                 'message' => '导入成功',
+                'saved_path' => $path,
             ], 200);
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             $failures = $e->failures();
