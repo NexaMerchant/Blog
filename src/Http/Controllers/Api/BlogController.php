@@ -781,6 +781,8 @@ class BlogController extends Controller
             $path = $request->file('file')->store('uploads', 'local');
             Excel::import(new ArticleImport, $request->file('file'));
 
+            Cache::tags([self::CACHE_KEY_ARTICLE_RECOMMEND])->flush();
+
             return response()->json([
                 'success' => true,
                 'message' => '导入成功',
