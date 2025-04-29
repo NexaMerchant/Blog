@@ -2,7 +2,6 @@
 
 namespace NexaMerchant\Blog\Http\Controllers\Api;
 
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -10,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use NexaMerchant\Blog\Models\BlogArticle;
 use NexaMerchant\Blog\Models\BlogCategory;
 use NexaMerchant\Blog\Http\Requests\StoreBlogArticleRequest;
@@ -86,7 +84,7 @@ class BlogController extends Controller
         $validated = $request->validated();
 
         // 自动从content提取封面图
-        $coverImage = $this->extractFirstImageFromContent($validated['content']);
+        $coverImage = BlogArticle::extractFirstImageFromContent($validated['content']);
 
         // 合并数据
         $validated = array_merge($validated, [
@@ -267,8 +265,6 @@ class BlogController extends Controller
     {
         $validated = $request->validate([
             'limit' => 'nullable|integer|min:1|max:20',
-            // 'exclude_id' => 'nullable|integer|exists:blog_articles,id',
-            // 'exclude_id' => 'integer|exists:blog_articles,id',
             'type' => 'nullable|in:latest,popular'
         ]);
 
@@ -293,10 +289,9 @@ class BlogController extends Controller
                 ->where('status', 1) // 只推荐已发布文章
                 ->when($validated['seo_url_key'] ?? false, function ($q) use ($validated) {
                     $q->where('seo_url_key', '!=', $validated['seo_url_key']); // 排除当前文章
-                })
-                ->when($validated['type'] === 'popular', function ($q) {
+                })->when($validated['type'] === 'popular', function ($q) {
                     $q->orderBy('view_count', 'desc');
-                }, function ($q) {
+                })->when($validated['type'] === 'latest', function ($q) {
                     $q->latest();
                 })
                 ->take($validated['limit'] ?? 3)
@@ -313,54 +308,11 @@ class BlogController extends Controller
         ], 200);
     }
 
-    /**
-     * 从HTML内容中提取第一张图片URL
-     */
-    public function extractFirstImageFromContent(string $content): ?string
-    {
-        // 方案1：正则匹配（简单HTML内容）
-        preg_match('/<img[^>]+src="([^">]+)"/', $content, $matches);
-        $imageUrl = $matches[1] ?? '';
-
-        // 方案2：DOM解析（更复杂的HTML）
-        /*
-        $dom = new \DOMDocument();
-        @$dom->loadHTML($content);
-        $images = $dom->getElementsByTagName('img');
-        $imageUrl = $images->length > 0 ? $images->item(0)->getAttribute('src') : null;
-        */
-
-        // 如果是本地相对路径，转换为存储路径
-        if ($imageUrl && !Str::startsWith($imageUrl, ['http://', 'https://'])) {
-            return Storage::url(ltrim(parse_url($imageUrl, PHP_URL_PATH), '/'));
-        }
-
-        return $imageUrl;
-    }
-
     public function showArticle($id)
     {
         try {
-            // 验证ID有效性
-            // $validated = $request->validate([
-            //     'with_category' => 'nullable|boolean',
-            //     'with_related' => 'nullable|integer|min:1|max:5' // 相关文章数量
-            // ]);
 
-            // 构建查询
-            $article = BlogArticle::query()
-                // ->when($request->boolean('with_category'), function ($query) {
-                //     $query->with(['category' => function ($q) {
-                //         $q->select('id', 'name', 'seo_url_key');
-                //     }]);
-                // })
-                // ->when($request->filled('with_related'), function ($query) use ($id, $request) {
-                //     $query->with(['relatedArticles' => function ($q) use ($request) {
-                //         $q->limit($request->input('with_related', 3))
-                //             ->select('id', 'title', 'seo_url_key', 'created_at');
-                //     }]);
-                // })
-                ->findOrFail($id);
+            $article = BlogArticle::query()->findOrFail($id);
 
             // 记录访问量（队列处理）
             dispatch(function () use ($id) {
@@ -393,10 +345,6 @@ class BlogController extends Controller
     public function showCategory($id)
     {
         try {
-            // $validated = $request->validate([
-            //     'with_latest' => 'nullable|integer|min:1|max:5' // 最新文章数量
-            // ]);
-
             $category = BlogCategory::query()->withCount(['articles' => function ($q) {
                 $q->where('status', 1); // 只统计已发布文章
             }])->with(['latestArticles' => function ($q) {
@@ -508,7 +456,6 @@ class BlogController extends Controller
             'category' => $article->category ?: null,
             'view_count' => $article->view_count,
             'related_articles' => $article->relatedArticles->isEmpty() ? null : $article->relatedArticles,
-            // 'recommended_articles' => BlogArticle::query()->latest('updated_at')->take(3)->get(),
             'seo_meta' => [
                 'title' => $article->seo_meta_title,
                 'keywords' => $article->seo_meta_keywords,
@@ -771,6 +718,12 @@ class BlogController extends Controller
         });
     }
 
+    /**
+     * @description: 批量上传文章
+     * @param {Request} $request
+     * @Author: rickon
+     * @Date: 2025-04-29 10:22:17
+     */
     public function articlesUpload(Request $request)
     {
         $this->validate($request, [

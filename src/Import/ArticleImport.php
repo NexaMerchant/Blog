@@ -16,7 +16,7 @@ class ArticleImport implements ToModel, WithHeadingRow, WithValidation
             '*.title' => 'required|string|max:512',
             '*.content' => 'required|string',
             // '*.description' => 'nullable|string',
-            '*.category_id' => 'required|integer|exists:blog_categories,id',
+            '*.category_id' => 'nullable|integer|exists:blog_categories,id',
             '*.seo_meta_title' => 'nullable|string|max:512',
             '*.seo_meta_keywords' => 'nullable|string|max:512',
             '*.seo_meta_description' => 'nullable|string',
@@ -26,10 +26,10 @@ class ArticleImport implements ToModel, WithHeadingRow, WithValidation
 
     public function model(array $row)
     {
-        $blogController = new BlogController();
-        $row['cover_image'] = $blogController->extractFirstImageFromContent($row['content']);
+        $row['cover_image'] = BlogArticle::extractFirstImageFromContent($row['content']);
         // desc from content 截取200个字符
         $row['description'] = mb_substr(self::getBodyTextByHtml($row['content']), 0, 200);
+        $row['category_id'] = $row['category_id'] ?: 0;
         $row['seo_meta_title'] = $row['seo_meta_title'] ?: '';
         $row['seo_meta_keywords'] = $row['seo_meta_keywords'] ?: '';
         $row['seo_meta_description'] = $row['seo_meta_description'] ?: '';
