@@ -13,7 +13,7 @@ class ArticleImport implements ToModel, WithHeadingRow, WithValidation
     public function rules(): array
     {
         return [
-            '*.title' => 'required|string|max:512',
+            '*.title' => 'nullable|string|max:512',
             '*.content' => 'required|string',
             // '*.description' => 'nullable|string',
             '*.category_id' => 'nullable|integer|exists:blog_categories,id',
@@ -36,6 +36,10 @@ class ArticleImport implements ToModel, WithHeadingRow, WithValidation
         $row['seo_url_key'] = self::formatString($row['seo_url_key']);
         $row['created_at'] = date('Y-m-d H:i:s');
         $row['updated_at'] = date('Y-m-d H:i:s');
+
+        if (empty($row['title'])) {
+            $row['title'] = self::getTitleTextByHtml($row['content']);
+        }
 
         $blogArticle = new BlogArticle($row);
         $blogArticle->save();
@@ -71,4 +75,13 @@ class ArticleImport implements ToModel, WithHeadingRow, WithValidation
         // 去掉多余的空白字符
         return trim($text);
     }
+
+    public static function getTitleTextByHtml($html)
+    {
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        $title = $dom->getElementsByTagName('title')->item(0)->nodeValue;
+        return trim($title);
+    }
+
 }
